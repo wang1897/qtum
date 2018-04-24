@@ -2,6 +2,8 @@
 #define QTUMTRANSACTION_H
 
 #include <libethcore/Transaction.h>
+#include "../txdb.h"
+#include "../util.h"
 
 struct VersionVM{
     //this should be portable, see https://stackoverflow.com/questions/31726191/is-there-a-portable-alternative-to-c-bitfields
@@ -41,6 +43,46 @@ struct VersionVM{
         return x;
     }
 }__attribute__((__packed__));
+
+
+struct UniversalAddress{
+    UniversalAddress(){
+        version = AddressVersion::UNKNOWN;
+    }
+    UniversalAddress(AddressVersion v, const std::vector<uint8_t> &d)
+    : version(v), data(d) {}
+    UniversalAddress(AddressVersion v, const unsigned char* begin, const unsigned char* end)
+    : version(v), data(begin, end) {}
+    AddressVersion version;
+    std::vector<uint8_t> data;
+
+    bool operator<(const UniversalAddress& a) const{
+        return data < a.data;
+    }
+    bool operator==(const UniversalAddress& a) const{
+        return version == a.version && data == a.data;
+    }
+    bool operator!=(const UniversalAddress& a) const{
+        return !(a == *this);
+    }
+
+    static UniversalAddress FromScript(const CScript& script);
+    static UniversalAddress FromOutput(AddressVersion v, uint256 txid, uint32_t vout);
+};
+
+
+class DeltaDB : public CDBWrapper
+{
+
+public:
+	DeltaDB(size_t nCacheSize, bool fMemory, bool fWipe) : CDBWrapper(GetDataDir() / "DeltaDB", nCacheSize, fMemory, fWipe) { }
+    bool writeState(valtype address, valtype key, valtype value);
+    bool readState(valtype address, valtype key, valtype& value);
+	bool writeByteCode(UniversalAddress address,valtype byteCode);
+	bool readByteCode(UniversalAddress address,valtype& byteCode);
+
+
+};
 
 class QtumTransaction : public dev::eth::Transaction{
 
