@@ -2,8 +2,11 @@
 #define QTUMTRANSACTION_H
 
 #include <libethcore/Transaction.h>
-#include "../txdb.h"
-#include "../util.h"
+#include <libethereum/Transaction.h>
+#include <dbwrapper.h>
+#include <util.h>
+#include <script/interpreter.h>
+
 
 struct VersionVM{
     //this should be portable, see https://stackoverflow.com/questions/31726191/is-there-a-portable-alternative-to-c-bitfields
@@ -43,6 +46,16 @@ struct VersionVM{
         return x;
     }
 }__attribute__((__packed__));
+
+enum AddressVersion{
+    UNKNOWN = 0,
+    //legacy is either pubkeyhash or EVM, depending on if the address already exists
+    LEGACYEVM = 1,
+    PUBKEYHASH = 2,
+    EVM = 3,
+    X86 = 4,
+    SCRIPTHASH = 5,
+};
 
 
 struct UniversalAddress{
@@ -116,4 +129,6 @@ private:
     VersionVM version;
 
 };
+
+
 #endif
