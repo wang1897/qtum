@@ -9,7 +9,7 @@ namespace deltaDBTest{
 
 BOOST_FIXTURE_TEST_SUITE(deltaDB_tests, TestingSetup)
 
-BOOST_AUTO_TEST_CASE(byteCodeTest){
+BOOST_AUTO_TEST_CASE(byteCode_read_write_test){
 	size_t nCacheSize=8;
 	bool fWipe=false,ret;
 	DeltaDB* pDeltaDB= new DeltaDB(nCacheSize,false,fWipe);
@@ -22,6 +22,7 @@ BOOST_AUTO_TEST_CASE(byteCodeTest){
 	ret = pDeltaDB->readByteCode(addr, byteCode2);	
     BOOST_CHECK(byteCode2==byteCode);
 	
+    delete pDeltaDB;	
 }
 
 
