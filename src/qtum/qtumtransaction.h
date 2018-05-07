@@ -90,8 +90,8 @@ class DeltaDB : public CDBWrapper
 public:
 	DeltaDB(size_t nCacheSize, bool fMemory, bool fWipe) : CDBWrapper(GetDataDir() / "DeltaDB", nCacheSize, fMemory, fWipe) { }
 	~DeltaDB() {    }		
-    bool writeState(valtype address, valtype key, valtype value);
-    bool readState(valtype address, valtype key, valtype& value);
+    bool writeState(UniversalAddress address, valtype key, valtype value);
+    bool readState(UniversalAddress address, valtype key, valtype& value);
 	bool writeByteCode(UniversalAddress address,valtype byteCode);
 	bool readByteCode(UniversalAddress address,valtype& byteCode);
 
