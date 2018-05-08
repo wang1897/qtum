@@ -6,6 +6,7 @@
 #include <dbwrapper.h>
 #include <util.h>
 #include <script/interpreter.h>
+#include <uint256.h>
 
 
 struct VersionVM{
@@ -94,6 +95,8 @@ public:
     bool readState(UniversalAddress address, valtype key, valtype& value);
 	bool writeByteCode(UniversalAddress address,valtype byteCode);
 	bool readByteCode(UniversalAddress address,valtype& byteCode);
+	bool writeUpdatedKey(UniversalAddress address, valtype key, unsigned int blk_num, uint256 blk_hash);
+	bool readUpdatedKey(UniversalAddress address, valtype key, unsigned int &blk_num, uint256 &blk_hash);
 
 };
 
