@@ -2583,7 +2583,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
                                      "bad-tx-gas-sum-overflow");
                 }
 
-                if(gasFeeSum > nTxFee) {
+                if(gasFeeSum > (uint64_t)nTxFee) {
                     return state.DoS(100, error("ConnectBlock(): Transaction fee does not cover the gas stipend"), REJECT_INVALID, "bad-txns-fee-notenough");
                 }
 

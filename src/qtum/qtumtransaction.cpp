@@ -222,7 +222,7 @@ bool EVMContractVM::execute(ContractOutput &output, ContractExecutionResult &res
             break;
     }
     result.refundSender = (uint64_t) ethres.execRes.gasRefunded * output.gasPrice;
-    if(result.refundSender > output.gasLimit * output.gasPrice){
+    if((uint64_t)result.refundSender > output.gasLimit * output.gasPrice){
         result.refundSender = output.gasLimit * output.gasPrice; //don't ever return more than was sent
     }
     result.usedGas = (uint64_t) ethres.execRes.gasUsed;

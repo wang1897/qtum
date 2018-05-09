@@ -504,7 +504,7 @@ bool AccountAbstractionLayer::calculateBalances() {
             LogPrintf("Account balance change would cause overflow!");
             return false;
         }
-        if(balances[t.from] < t.value){
+        if((uint64_t)balances[t.from] < t.value){
             LogPrintf("Account balance change would cause underflow!");
             //return false;
         }
