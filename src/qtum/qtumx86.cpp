@@ -40,7 +40,7 @@ const ContractEnvironment& x86ContractVM::getEnv() {
 #define DATA_ADDRESS 0x100000
 #define MAX_DATA_SIZE 0x10000
 #define STACK_ADDRESS 0x200000
-#define MAX_STACK_SIZE 1024 * 8
+#define MAX_STACK_SIZE (1024 * 8)
 
 bool x86ContractVM::execute(ContractOutput &output, ContractExecutionResult &result, bool commit)
 {
@@ -55,23 +55,25 @@ bool x86ContractVM::execute(ContractOutput &output, ContractExecutionResult &res
             return false;
         }
         MemorySystem memory;
-        ROMemory codeMemory(map->codeSize, "code");
-        RAMemory dataMemory(map->dataSize, "data");
+        //ROMemory codeMemory(map->codeSize, "code");
+        //RAMemory dataMemory(map->dataSize, "data");
+        ROMemory codeMemory(MAX_CODE_SIZE, "code");
+        RAMemory dataMemory(MAX_STACK_SIZE, "data");
         RAMemory stackMemory(MAX_STACK_SIZE, "stack");
         //TODO how is .bss loaded!?
 
         //zero memory for consensus
-        memset(codeMemory.GetMemory(), map->codeSize, 0);
-        memset(dataMemory.GetMemory(), map->dataSize, 0);
-        memset(stackMemory.GetMemory(), MAX_STACK_SIZE, 0);
+        //memset(codeMemory.GetMemory(), map->codeSize, 0);
+        //memset(dataMemory.GetMemory(), map->dataSize, 0);
+        //memset(stackMemory.GetMemory(), MAX_STACK_SIZE, 0);
 
         //init memory
         memcpy(codeMemory.GetMemory(), code, map->codeSize);
         memcpy(dataMemory.GetMemory(), data, map->dataSize);
 
         MemorySystem memsys;
-        memsys.Add(CODE_ADDRESS, CODE_ADDRESS + MAX_CODE_SIZE, &codeMemory);
-        memsys.Add(DATA_ADDRESS, DATA_ADDRESS + MAX_DATA_SIZE, &dataMemory);
+        memsys.Add(CODE_ADDRESS, CODE_ADDRESS + MAX_CODE_SIZE - 1, &codeMemory);
+        memsys.Add(DATA_ADDRESS, DATA_ADDRESS + MAX_DATA_SIZE - 1, &dataMemory);
         memsys.Add(STACK_ADDRESS, STACK_ADDRESS + MAX_STACK_SIZE, &stackMemory);
 
         QtumHypervisor qtumhv(*this);
@@ -90,6 +92,8 @@ bool x86ContractVM::execute(ContractOutput &output, ContractExecutionResult &res
             LogPrintf("Memory error! address: %x, opcode: %s, hex: %x", err->address, cpu.GetLastOpcodeName(), cpu.GetLastOpcode());
             return false;
         }
+        result.usedGas = 1;//set 1 to prove concept
+        result.status = ContractStatus::SUCCESS;
         LogPrintf("Execution successful!");
 
 

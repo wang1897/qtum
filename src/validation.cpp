@@ -2613,7 +2613,7 @@ static bool ConnectBlock(const CBlock& block, CValidationState& state, CBlockInd
                     return state.DoS(100, error("ConnectBlock(): Contract execution can not specify greater gas limit than can fit in 32-bits"), REJECT_INVALID, "bad-tx-too-much-gas");
 
                 gasLimitSum += output.gasLimit;
-                if(gasFeeSum > blockGasLimit)
+                if(gasLimitSum > blockGasLimit)
                     return state.DoS(1, false, REJECT_INVALID, "bad-txns-gas-exceeds-blockgaslimit");
 
                 //don't allow less than DGP set minimum gas price to prevent MPoS greedy mining/spammers
