@@ -38,13 +38,13 @@ BOOST_AUTO_TEST_CASE(state_read_write_test){
 
 	ret = pDeltaDB->writeState(addr, valtype(ParseHex("3c4c1d737591848a9")),v);
 	BOOST_CHECK(ret);	
-	ret = pDeltaDB->readState(addr, valtype(ParseHex("5c4c1d737591848a7")),v2);
+	ret = pDeltaDB->readState(addr, valtype(ParseHex("3c4c1d737591848a9")),v2);
 	BOOST_CHECK(ret);	
     BOOST_CHECK(v2==v);
 	
 	ret = pDeltaDB->writeUpdatedKey(addr, valtype(ParseHex("7c4c1d737591848a3")), 111222, w);
 	BOOST_CHECK(ret);
-	ret = pDeltaDB->readUpdatedKey(addr, valtype(ParseHex("8c4c1d73759184821")), blk, r);
+	ret = pDeltaDB->readUpdatedKey(addr, valtype(ParseHex("7c4c1d737591848a3")), blk, r);
 	BOOST_CHECK(ret);
     BOOST_CHECK(blk==111222);
     BOOST_CHECK(r==w);

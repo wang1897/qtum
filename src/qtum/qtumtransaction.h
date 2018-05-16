@@ -3,11 +3,12 @@
 
 #include <libethcore/Transaction.h>
 #include <libethereum/Transaction.h>
+#include <coins.h>
+#include <script/interpreter.h>
+#include <libevm/ExtVMFace.h>
 #include <dbwrapper.h>
 #include <util.h>
-#include <script/interpreter.h>
 #include <uint256.h>
-
 
 struct VersionVM{
     //this should be portable, see https://stackoverflow.com/questions/31726191/is-there-a-portable-alternative-to-c-bitfields
@@ -46,7 +47,20 @@ struct VersionVM{
         x.vmVersion=0;
         return x;
     }
+    static VersionVM Getx86Default(){
+        VersionVM x;
+        x.flagOptions=0;
+        x.rootVM=2;
+        x.format=0;
+        x.vmVersion=0;
+        return x;
+    }
 }__attribute__((__packed__));
+
+static const uint8_t ROOT_VM_NULL = 0;
+static const uint8_t ROOT_VM_EVM = 1;
+static const uint8_t ROOT_VM_X86 = 2;
+
 
 enum AddressVersion{
     UNKNOWN = 0,
@@ -57,7 +71,6 @@ enum AddressVersion{
     X86 = 4,
     SCRIPTHASH = 5,
 };
-
 
 struct UniversalAddress{
     UniversalAddress(){
@@ -84,12 +97,52 @@ struct UniversalAddress{
     static UniversalAddress FromOutput(AddressVersion v, uint256 txid, uint32_t vout);
 };
 
+struct ContractOutput{
+    VersionVM version;
+    uint64_t value, gasPrice, gasLimit;
+    UniversalAddress address;
+    std::vector<uint8_t> data;
+    UniversalAddress sender;
+    COutPoint vout;
+    bool OpCreate;
+};
+
+class ContractOutputParser{
+public:
+
+    ContractOutputParser(const CTransaction &tx, uint32_t vout, const CCoinsViewCache* v = NULL, const std::vector<CTransactionRef>* blockTxs = NULL)
+            : tx(tx), nvout(vout), view(v), blockTransactions(blockTxs) {}
+    bool parseOutput(ContractOutput& output);
+    UniversalAddress getSenderAddress();
+
+private:
+    bool receiveStack(const CScript& scriptPubKey);
+    const CTransaction &tx;
+    const uint32_t nvout;
+    const CCoinsViewCache* view;
+    const std::vector<CTransactionRef> *blockTransactions;
+    std::vector<valtype> stack;
+    opcodetype opcode;
+
+};
+
+struct ContractEnvironment{
+    uint32_t blockNumber;
+    uint64_t blockTime;
+    uint64_t difficulty;
+    uint64_t gasLimit;
+    UniversalAddress blockCreator;
+    std::vector<uint256> blockHashes;
+
+    //todo for x86: tx info
+};
 
 class DeltaDB : public CDBWrapper
 {
 
 public:
-	DeltaDB(size_t nCacheSize, bool fMemory, bool fWipe) : CDBWrapper(GetDataDir() / "DeltaDB", nCacheSize, fMemory, fWipe) { }
+	DeltaDB(size_t nCacheSize, bool fMemory, bool fWipe) : CDBWrapper(GetDataDir() / "deltaDB", nCacheSize, fMemory, fWipe) { }	
+	DeltaDB() : CDBWrapper(GetDataDir() / "deltaDB", 4, false, false) { }
 	~DeltaDB() {    }
 	
 	/*************** Live data *****************/
@@ -128,6 +181,62 @@ public:
 	bool readOldestIterator(UniversalAddress address,        valtype key, uint64_t &iterator, unsigned int &blk_num, uint256 &blk_hash);
 	
 
+};
+
+enum ContractStatus{
+    SUCCESS = 0,
+    OUT_OF_GAS = 1,
+    CODE_ERROR = 2,
+    DOESNT_EXIST = 3
+};
+
+struct ContractExecutionResult{
+    uint64_t usedGas;
+    CAmount refundSender = 0;
+    ContractStatus status;
+    CMutableTransaction transferTx;
+};
+
+class QtumTransaction;
+class x86ContractVM;
+//the abstract class for the VM interface
+//in the future, enterprise/private VMs will use this interface
+class ContractVM{
+    //todo database
+protected:
+    ContractVM(DeltaDB &_db, const ContractEnvironment &_env, uint64_t _remainingGasLimit)
+    : db(db), env(_env), remainingGasLimit(_remainingGasLimit) {}
+public:
+    virtual bool execute(ContractOutput &output, ContractExecutionResult &result, bool commit)=0;
+protected:
+    DeltaDB &db;
+    const ContractEnvironment &env;
+    const uint64_t remainingGasLimit;
+};
+
+
+
+class EVMContractVM : public ContractVM {
+public:
+    EVMContractVM(DeltaDB &db, const ContractEnvironment &env, uint64_t remainingGasLimit)
+            : ContractVM(db, env, remainingGasLimit)
+    {}
+    virtual bool execute(ContractOutput &output, ContractExecutionResult &result, bool commit);
+private:
+    dev::eth::EnvInfo buildEthEnv();
+    QtumTransaction buildQtumTx(const ContractOutput &output);
+};
+
+class ContractExecutor{
+public:
+    ContractExecutor(const CBlock& _block, ContractOutput _output, uint64_t _blockGasLimit);
+    bool execute(ContractExecutionResult &result, bool commit);
+private:
+    bool buildTransferTx(ContractExecutionResult& res);
+    ContractEnvironment buildEnv();
+    const CBlock& block;
+    ContractOutput output;
+    const uint64_t blockGasLimit;
 };
 
 class QtumTransaction : public dev::eth::Transaction{
